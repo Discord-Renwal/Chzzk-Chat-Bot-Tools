@@ -1,0 +1,35 @@
+{
+  "name": "@chzzk-bot/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "봇 런타임 워커 — 테넌트별 치지직 세션, !입장 게이트, 명령 실행 API",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsup",
+    "login": "tsx src/cli/login.ts",
+    "doctor": "tsx src/cli/doctor.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@chzzk-bot/auth": "workspace:*",
+    "@chzzk-bot/bot-engine": "workspace:*",
+    "@chzzk-bot/chzzk-sdk": "workspace:*",
+    "@chzzk-bot/contracts": "workspace:*",
+    "@chzzk-bot/database": "workspace:*",
+    "@chzzk-bot/logger": "workspace:*",
+    "@chzzk-bot/platform-config": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@chzzk-bot/tsconfig": "workspace:*",
+    "@types/node": "^22.10.5",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "@chzzk-bot/tsconfig/node.json",
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "bench/**/*.ts",
+    "examples/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

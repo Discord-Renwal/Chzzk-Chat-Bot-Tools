@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+
+/*
+ * 공용 UI 패키지도 스캔 대상에 넣습니다.
+ *
+ * Tailwind v4 는 CSS 파일이 있는 프로젝트만 훑고 node_modules 는 건너뜁니다.
+ * `@chzzk-bot/ui` 는 심볼릭 링크로 node_modules 안에 들어오므로, 이 줄이 없으면
+ * 패키지 안에서만 쓰는 클래스(w-10, h-5.5 …)가 아예 생성되지 않습니다.
+ * 그러면 컴포넌트는 DOM 에 있는데 크기가 0 이라 **보이지 않습니다** —
+ * 토글 스위치가 사라졌던 원인이 이것이었습니다.
+ */
+@source '../../../packages/ui/src';
+
+/*
+ * 디자인 토큰.
+ * 치지직 브랜드 그린(#00FFA3)을 강조색으로 쓰고, 나머지는 중성 계열로 눌러
+ * 강조색이 실제로 강조되도록 했습니다.
+ */
+@theme {
+  --color-ink-50: #f6f7f9;
+  --color-ink-100: #eceef2;
+  --color-ink-200: #d5d9e0;
+  --color-ink-300: #b0b7c3;
+  --color-ink-400: #7d8695;
+  --color-ink-500: #5b6473;
+  --color-ink-600: #434b58;
+  --color-ink-700: #2f3540;
+  --color-ink-800: #1e2229;
+  --color-ink-850: #191c22;
+  --color-ink-900: #14161b;
+  --color-ink-950: #0d0f13;
+
+  --color-brand-300: #7dffd0;
+  --color-brand-400: #35ffb8;
+  --color-brand: #00ffa3;
+  --color-brand-600: #00c97f;
+  --color-brand-700: #009a60;
+  --color-brand-ink: #04241a;
+
+  --font-sans:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Malgun Gothic', system-ui, sans-serif;
+
+  --radius-panel: 0.875rem;
+
+  --animate-fade-up: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * 라이트/다크는 <html class="dark"> 로 전환합니다.
+ * 시맨틱 변수 한 겹을 두면 컴포넌트마다 dark: 접두사를 반복하지 않아도 됩니다.
+ */
+@layer base {
+  :root {
+    --surface-bg: var(--color-ink-50);
+    --surface-panel: #ffffff;
+    --surface-raised: var(--color-ink-100);
+    --surface-border: var(--color-ink-200);
+    --surface-text: var(--color-ink-900);
+    --surface-muted: var(--color-ink-500);
+  }
+
+  .dark {
+    --surface-bg: var(--color-ink-950);
+    --surface-panel: var(--color-ink-880, #1a1d23);
+    --surface-raised: var(--color-ink-800);
+    --surface-border: #2b3038;
+    --surface-text: var(--color-ink-100);
+    --surface-muted: var(--color-ink-400);
+  }
+
+  * {
+    border-color: var(--surface-border);
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background: var(--surface-bg);
+    color: var(--surface-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 다크 모드에서 상단에 은은한 그린 글로우 */
+  .dark body {
+    background-image: radial-gradient(
+      60rem 32rem at 50% -12rem,
+      rgb(0 255 163 / 0.07),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+  }
+
+  ::selection {
+    background: var(--color-brand);
+    color: var(--color-brand-ink);
+  }
+
+  /* 스크롤바 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-400);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@utility panel {
+  background: var(--surface-panel);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-panel);
+}
+
+/* 포커스 링을 한 곳에서 관리합니다. */
+@utility focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--surface-bg),
+    0 0 0 4px var(--color-brand-600);
+}

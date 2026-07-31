@@ -5,6 +5,10 @@ node_modules/
 # 빌드 산출물
 dist/
 *.tsbuildinfo
+.turbo/
+
+# Prisma 가 만들어내는 클라이언트 (스키마에서 다시 생성됩니다)
+packages/database/generated/
 
 # 비밀정보 — .env.example 만 커밋합니다
 .env
@@ -32,11 +36,5 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 
-# 봇 설정 데이터 (명령어/자동응답/금칙어)
+# 로컬 실행 데이터 (JSON 파일 모드에서만 씁니다)
 data/
-
-# React 대시보드 빌드 산출물
-web/dist/
-
-# 커버리지 리포트
-coverage/

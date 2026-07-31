@@ -1,0 +1,40 @@
+{
+  "name": "@chzzk-bot/web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "사용자 웹 — 기능 소개 · 요금제 · 결제 · 마이페이지 · 채널 관리자 대시보드",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@chzzk-bot/contracts": "workspace:*",
+    "@chzzk-bot/ui": "workspace:*",
+    "@hookform/resolvers": "^5.4.0",
+    "@radix-ui/react-tabs": "^1.1.18",
+    "@radix-ui/react-tooltip": "^1.2.13",
+    "@tanstack/react-query": "^5.101.2",
+    "lucide-react": "^1.25.0",
+    "motion": "^12.42.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.82.0",
+    "react-router": "^8.2.0",
+    "sonner": "^2.0.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@chzzk-bot/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2",
+    "vite": "^8.1.5"
+  }
+}

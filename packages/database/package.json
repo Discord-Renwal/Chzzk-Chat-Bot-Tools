@@ -1,0 +1,37 @@
+{
+  "name": "@chzzk-bot/database",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prisma 스키마와 테넌트 격리를 강제하는 리포지토리 계층",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@chzzk-bot/contracts": "workspace:*",
+    "@chzzk-bot/logger": "workspace:*",
+    "@chzzk-bot/platform-config": "workspace:*",
+    "@prisma/client": "^6.2.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@chzzk-bot/tsconfig": "workspace:*",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

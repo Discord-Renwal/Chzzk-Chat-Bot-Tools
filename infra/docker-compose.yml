@@ -1,0 +1,40 @@
+name: chzzk-bot-platform
+
+# 로컬 개발용 인프라.
+#
+# 앱은 컨테이너에 넣지 않습니다 — `pnpm dev` 로 호스트에서 돌리는 편이 HMR 과
+# 디버거가 훨씬 잘 붙습니다. 여기서는 직접 설치하기 번거로운 것들만 띄웁니다.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chzzk-bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chzzkbot
+      POSTGRES_PASSWORD: chzzkbot
+      POSTGRES_DB: chzzkbot
+      # 한글 채널명·명령어가 그대로 들어갑니다. 정렬 규칙을 명시해 두지 않으면
+      # 호스트 로케일에 따라 인덱스 동작이 달라집니다.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U chzzkbot -d chzzkbot']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 결제 웹훅을 로컬에서 받아 보려면 외부에서 접근 가능한 주소가 필요합니다.
+  # 필요할 때만 `--profile tunnel` 로 함께 띄우세요.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: chzzk-bot-tunnel
+    profiles: ['tunnel']
+    command: tunnel --no-autoupdate --url http://host.docker.internal:4000
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+volumes:
+  postgres-data:

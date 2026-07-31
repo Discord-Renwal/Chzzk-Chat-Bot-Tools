@@ -1,464 +1,238 @@
-# Chzzk Chat Bot Tools
+<div align="center">
 
-[CHZZK Open API](https://chzzk.gitbook.io/chzzk) 기반 채팅 봇 툴킷. TypeScript + Node.js.
+# Chzzk Bot Platform
 
-공식 문서에 정의된 REST 엔드포인트 전체와 Session(소켓) API를 타입 안전하게 감싸고,
-OAuth 토큰 발급·자동 갱신, 채팅 명령 라우팅, 전송 큐까지 포함합니다.
+**치지직 스트리머를 위한 챗봇 SaaS**
+
+치지직 계정으로 로그인하면 채널이 만들어지고, 방송 채팅에 `!입장` 만 치면 봇이 들어옵니다.<br>
+치지직 **공식 Open API** 만 사용합니다 — 비공식 API 나 웹 스크래핑을 쓰지 않습니다.
+
+**한국어** ·
+[English](docs/readme/README.en.md) ·
+[中文](docs/readme/README.zh-CN.md) ·
+[日本語](docs/readme/README.ja.md)
+
+</div>
 
 ---
 
-## 빠른 시작
+## 언어 / 라이브러리
+
+| 구분          | 사용 기술                                                  |
+| ------------- | ---------------------------------------------------------- |
+| 언어          | TypeScript 5.7 (전 영역) · CSS · Prisma Schema             |
+| 런타임        | Node.js ≥ 20.11 · pnpm 9.15                                |
+| 모노레포      | Turborepo 2 · pnpm workspace                               |
+| 서버          | Fastify 5 (`@fastify/cookie` · `cors` · `rate-limit`)      |
+| 데이터베이스  | PostgreSQL 16 · Prisma 6                                   |
+| 프런트엔드    | React 19 · React Router 8 · Vite 8                         |
+| 상태 · 데이터 | TanStack Query 5                                           |
+| 스타일        | Tailwind CSS 4 · Radix UI · lucide-react · Motion · Sonner |
+| 폼 · 검증     | React Hook Form 7 · Zod 3                                  |
+| 치지직 연동   | `socket.io-client` 2.5 (세션 프로토콜이 2.x 까지만 지원)   |
+| 결제          | PortOne V2 (빌링키 정기결제)                               |
+| 테스트 · 품질 | Vitest 4 · ESLint 9 · Prettier 3                           |
+| 빌드          | tsup (서버) · Vite (프런트)                                |
+
+**Zod 를 서버와 프런트가 함께 씁니다.** 검증 규칙이 한 곳(`packages/contracts`)에만 있어, 폼과 API 의
+규칙이 어긋날 수 없습니다.
+
+## 구성
+
+네 개의 영역, 세 개의 프로세스로 나뉩니다.
+
+| 영역          | 위치                      | 포트   | 하는 일                                  |
+| ------------- | ------------------------- | ------ | ---------------------------------------- |
+| ① 사용자      | `apps/web`                | `5173` | 기능 소개 · 요금제 · 결제 · 마이페이지   |
+| ② 관리자      | `apps/web` (`/dashboard`) | `5173` | 스트리머가 자기 채널의 봇을 설정         |
+| ③ 내부 관리자 | `apps/backoffice`         | `5174` | 사용자 · 채널 · 구독 · 환불 · 감사 로그  |
+| ④ Core        | `apps/core`               | `4100` | 치지직 세션 · `!입장` 게이트 · 명령 실행 |
+| API           | `apps/api`                | `4000` | 위 화면들이 부르는 유일한 서버           |
+
+```
+ ┌──────────────┐        ┌───────────────┐
+ │  apps/web    │        │apps/backoffice│      브라우저
+ │    :5173     │        │     :5174     │
+ └──────┬───────┘        └───────┬───────┘
+        │   /api (쿠키 세션)      │
+        └────────────┬───────────┘
+                     ▼
+              ┌─────────────┐        ┌──────────────┐
+              │  apps/api   │ ─────▶ │  apps/core   │  내부 토큰 인증
+              │    :4000    │ ◀───── │    :4100     │
+              └──────┬──────┘        └──────┬───────┘
+                     ▼                      ▼
+              ┌──────────────┐       ┌──────────────┐
+              │  PostgreSQL  │       │  치지직 API  │
+              └──────────────┘       └──────────────┘
+```
+
+## 디렉토리 구조
+
+```
+.
+├── apps/
+│   ├── api/              REST API 게이트웨이 (Fastify)
+│   │   ├── src/routes/     auth · billing · botConfig · botControl · chzzkConsole · admin · system
+│   │   ├── src/plugins/    authGuard(인증·RBAC) · rawBody(웹훅 서명용 원본 보관)
+│   │   └── src/            context · coreClient · scheduler · errors · server
+│   ├── core/             봇 런타임 워커
+│   │   ├── src/adapters/   Postgres 를 bot-engine 포트에 맞추는 어댑터
+│   │   ├── src/cli/        login · doctor (개발자 도구)
+│   │   └── src/            tenantBot · supervisor · controlServer
+│   ├── web/              사용자 웹 + 채널 관리자 대시보드
+│   │   ├── src/app/        라우터 · 프로바이더 · 레이아웃
+│   │   ├── src/features/   marketing · account · dashboard
+│   │   └── src/shared/     api 클라이언트 · 타입 · 상수
+│   └── backoffice/       내부 관리자 콘솔
+│       ├── src/app/        콘솔 셸 · 로그인
+│       └── src/features/   개요 · 사용자 · 채널 · 결제 · 감사 로그 · 공지 · 기능 플래그
+│
+├── packages/
+│   ├── contracts/        zod 스키마 · DTO — 서버와 프런트가 함께 쓰는 계약
+│   ├── database/         Prisma 스키마 + 테넌트 격리를 강제하는 리포지토리
+│   ├── bot-engine/       채팅 한 줄을 해석하는 순수 도메인 (저장소를 모릅니다)
+│   ├── chzzk-sdk/        치지직 Open API 클라이언트 (우리 도메인을 모릅니다)
+│   ├── auth/             치지직 OAuth · 세션 · 토큰 암호화 · RBAC
+│   ├── billing/          요금제 · 구독 수명주기 · PortOne 어댑터
+│   ├── ui/               두 프런트가 공유하는 디자인 시스템
+│   ├── logger/           로깅
+│   └── platform-config/  환경 변수 스키마 · 서비스 상수
+│
+├── tooling/              tsconfig · eslint-config · prettier-config
+├── infra/                docker-compose (로컬 PostgreSQL)
+└── docs/                 아키텍처 · 봇 기능 레퍼런스 · 다국어 README
+```
+
+의존 방향은 한쪽으로만 흐릅니다.
+
+```
+apps/*  ──▶  auth · billing · database · bot-engine  ──▶  contracts · chzzk-sdk · logger · platform-config
+```
+
+- `chzzk-sdk` 는 우리 도메인(테넌트 · 구독 · 봇 설정)을 모릅니다.
+- `bot-engine` 은 저장소를 모릅니다 — 전부 `ports.ts` 인터페이스로 받습니다.
+- `database` 밖으로 Prisma 타입이 나가지 않습니다.
+
+자세한 설계 결정은 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**,
+봇이 채팅에서 무엇을 하는지는 **[docs/BOT-FEATURES.md](docs/BOT-FEATURES.md)** 에 있습니다.
+
+## 실행 방법
+
+### 사전 준비
+
+- Node.js **20.11 이상**
+- pnpm **9** (`corepack enable` 로 설치)
+- Docker (로컬 PostgreSQL 용)
+- 치지직 애플리케이션 — [개발자센터](https://developers.chzzk.naver.com/application)에서 발급
+  - 로그인 리디렉션 URL 에 `http://localhost:4000/api/auth/callback` 을 등록하세요.
+
+### 1. 설치와 인프라
 
 ```bash
 pnpm install
-cp .env.example .env      # 값 채우기 (이미 .env 가 있다면 생략)
-pnpm login                # 브라우저로 OAuth 인증 → .tokens/chzzk.json 생성
-pnpm doctor               # 인증/스코프 점검
-pnpm build:web            # 대시보드 빌드 (최초 1회)
-pnpm bot                  # 봇 + 설정 대시보드 실행 → http://localhost:4700
+pnpm infra:up          # PostgreSQL 컨테이너
 ```
 
-대시보드 UI 를 고칠 때는 HMR 이 되는 개발 서버를 쓰세요. `pnpm bot` 을 켜둔 채로
-다른 터미널에서 실행하면 `/api` 는 봇 서버로 프록시됩니다.
+### 2. 환경 변수
 
 ```bash
-pnpm dev:web              # http://localhost:5173
+cp .env.example .env
 ```
 
-`pnpm login` 을 실행하기 전에 [개발자센터](https://developers.chzzk.naver.com/application)에서
-**로그인 리디렉션 URL**을 `.env` 의 `CHZZK_REDIRECT_URI` 와 **문자 단위로 똑같이** 등록해야 합니다.
-기본값은 `http://localhost:3000/auth/callback` 입니다.
-
----
-
-## 챗봇 기능
-
-`pnpm bot` 을 실행하면 봇과 설정 대시보드(<http://localhost:4700>)가 함께 뜹니다.
-설정은 `data/config.json` 한 파일에 저장되고, 대시보드에서 바꾼 값은 **재시작 없이** 즉시 반영됩니다.
-
-### 목록형 명령어 — `!멤버`
-
-기억시켜 두고 아무나 꺼내 볼 수 있는 명령입니다.
-
-```
-스트리머  !멤버 빅헤드,9구진
-   봇     멤버 목록을 등록했습니다 (2명): 빅헤드, 9구진
-
-시청자    !멤버
-   봇     오늘의 멤버 (2명): 빅헤드, 9구진
-```
-
-부분 수정도 됩니다.
-
-| 입력                 | 동작                     |
-| -------------------- | ------------------------ |
-| `!멤버 빅헤드,9구진` | 목록 전체를 교체         |
-| `!멤버 추가 홍길동`  | 한 명 추가 (중복은 무시) |
-| `!멤버 삭제 빅헤드`  | 한 명 제거               |
-| `!멤버 초기화`       | 목록 비우기              |
-| `!멤버`              | 조회 (누구나)            |
-
-이름은 쉼표로 구분합니다. 쉼표가 하나도 없을 때만 공백으로 나누므로,
-`!멤버 김 철수,이 영희` 처럼 **이름에 공백이 들어가도** 됩니다.
-
-수정은 기본적으로 스트리머·채널 매니저만 가능하고, 조회는 누구나 할 수 있습니다.
-이 권한은 대시보드의 명령어 카드에서 역할별로 바꿀 수 있습니다.
-
-### 명령어 종류
-
-- **고정 문구** — 정해진 답을 돌려줍니다. (`!디스코드`)
-- **목록형** — 위의 `!멤버` 방식.
-- **카운터** — 부를 때마다 1씩 증가합니다. (`!데스`)
-
-응답 문구에 쓸 수 있는 치환자: `{user}` 호출자 닉네임 · `{value}` 저장값 ·
-`{n}` 항목 개수 · `{count}` 카운터 값.
-
-### 명령어 변수
-
-응답 문구에 `$변수` 또는 `{변수}` 를 쓰면 실제 값으로 바뀝니다. 국내 봇들의 표기를 따랐습니다.
-
-| 변수        | 값               |     | 변수            | 값                  |
-| ----------- | ---------------- | --- | --------------- | ------------------- |
-| `$닉네임`   | 호출한 사람      |     | `$방제`         | 방송 제목           |
-| `$포인트`   | 보유 포인트      |     | `$게임`         | 카테고리            |
-| `$채팅수`   | 누적 채팅 수     |     | `$업타임`       | 봇 가동 시간        |
-| `$출석체크` | 연속 출석일      |     | `$시간` `$날짜` | 현재 시각           |
-| `$카운트`   | 전체 실행 횟수   |     | `$유저카운트`   | 이 사람의 실행 횟수 |
-| `$변수`     | 명령어 뒤 입력값 |     | `$값` `$개수`   | 목록형 값·개수      |
-
-`|` 로 구분하면 그중 하나가 무작위로 나갑니다 — `안녕!|반가워요!|어서오세요!`
-
-한국어는 단어 경계가 없어 `$카운트번째` 처럼 변수 뒤에 말이 바로 붙습니다. 아는 변수명 중
-**가장 긴 것부터** 맞춰 보도록 구현해 이런 표기가 정상 동작합니다.
-
-### 내장 명령어
-
-| 명령                                     | 설명                               | 권한        |
-| ---------------------------------------- | ---------------------------------- | ----------- |
-| `!포인트` `!출석` `!랭킹`                | 포인트 조회 · 출석 · 순위          | 모두        |
-| `!도박` `!주사위` `!슬롯` `<금액>`       | 포인트를 건 미니게임 (`올인` 가능) | 모두        |
-| `!신청곡 <제목>` `!신청목록` `!신청취소` | 신청곡                             | 설정한 역할 |
-| `!다음곡` `!스킵`                        | 재생 제어                          | 관리자      |
-| `!지급 <닉> <수량>`                      | 포인트 지급/회수 (음수면 회수)     | 관리자      |
-| `!방제변경 <제목>` `!게임변경 <검색어>`  | 방송 설정                          | 관리자      |
-| `!슬로우 <초>` `!공지 <내용>`            | 채팅 설정 · 공지                   | 관리자      |
-| `!밴 <닉>` `!타임아웃 <닉>`              | 제재                               | 관리자      |
-| `!도움말` `!시간`                        | 안내                               | 모두        |
-
-닉네임으로 대상을 지정하는 명령(`!지급`, `!밴`, `!타임아웃`)은 **최근에 채팅한 사람만**
-찾을 수 있습니다. 치지직 API 에 닉네임으로 사용자를 조회하는 엔드포인트가 없어, 지나가는
-채팅 이벤트를 기억해 두는 방식이기 때문입니다.
-
-### 설정 탭
-
-| 탭            | 내용                                               |
-| ------------- | -------------------------------------------------- |
-| 일반          | 봇 on/off, 접두사, 전송 간격, 실행 현황            |
-| 실시간 로그   | 봇이 방금 한 일 (메모리 300건)                     |
-| 명령어        | 고정문구 · 목록형 · 카운터, 역할별 권한, 쿨다운    |
-| 자동응답      | 키워드 → 응답. 포함/일치/시작/정규식, 확률, 쿨다운 |
-| 주기 메시지   | 간격 + 최소 채팅 수 조건                           |
-| 알림 · 인사   | 후원 · 구독 감사, 첫 채팅 인사                     |
-| 포인트        | 적립 규칙, 출석 보상, 시청자별 조정                |
-| 미니게임      | 도박 · 주사위 · 슬롯, 배율과 기대값                |
-| 신청곡        | 대기열 관리, 신청 규칙                             |
-| 금칙어 · 스팸 | 단어 차단 + 한국형 스팸 필터                       |
-| 봇 권한       | 관리 역할, 추가 관리자, 무시할 ID                  |
-
-### 설계상 정해둔 규칙
-
-- **전송 간격 기본 2000ms.** 공식 문서에 쿼터 수치가 없지만 커뮤니티 확인값이 분당 30요청입니다.
-  더 줄이면 429 와 봇 계정 스팸 제재 위험이 있습니다.
-- **스팸·금칙어 검사가 명령어보다 먼저** 실행됩니다. 명령어 인자에 금칙어를 숨겨 보내는 우회를 막습니다.
-- **한국형 스팸 필터.** 영어권 봇의 "대문자 비율" 은 한글에 무의미해서 넣지 않았고,
-  자음 연타(ㅋㅋㅋㅋ…)·같은 말 반복·링크·이모티콘 개수를 봅니다. 위반이 쌓이면 조치가
-  세지고, 일정 시간이 지나면 기록이 사라집니다.
-- **임시제한은 기본으로 꺼져 있습니다.** 켜기 전까지 숨기기까지만 합니다.
-- **자동응답 쿨다운은 채널 공통**입니다. 여러 명이 동시에 같은 키워드를 쳐도 도배하지 않습니다.
-- **게임 기대값은 1보다 낮게** 기본값을 잡았습니다. 포인트가 무한히 불어나면 랭킹도 상점도
-  의미가 없어집니다. 대시보드가 현재 기대값을 계산해 보여줍니다.
-- 목록 출력은 **최대 30개**까지만 보여주고 나머지는 "외 N명" 으로 줄입니다. 100자 제한 때문입니다.
-
-### 스트리머 계정에서만 되는 기능
-
-아래는 치지직이 **스트리머 계정에만** 열어둔 API 입니다. 다른 계정으로 로그인하면
-`400 스트리머가 아닙니다` 가 오고, 대시보드가 그 사실을 그대로 안내합니다.
-
-- 제재 관리 (`restrict-channels` 조회·해제)
-- 채팅 설정 조회·변경
-- 방송 설정 조회·변경 (`!방제변경` `!게임변경`)
-- 매니저 목록 (`streaming-roles`)
-- 메시지 숨기기 · 임시 제한
-
-팔로워·구독자 조회와 카테고리 검색은 일반 계정에서도 동작합니다.
-
-### 구독자 전용 명령
-
-명령어마다 **구독자 전용** 옵션을 켤 수 있습니다. 다만 CHAT 이벤트에는 구독 여부가
-들어오지 않아서(`userRoleCode` 에 구독자라는 값이 없습니다), 구독자 목록을 10분마다
-받아 대조하는 방식입니다. 방금 구독한 사람은 최대 10분 늦게 인식될 수 있고,
-목록 조회가 막힌 계정에서는 이 옵션이 동작하지 않습니다.
-
-### API 제약 때문에 만들지 않은 것
-
-문서를 전수 확인한 결과 아래는 **불가능**합니다. 다른 봇이 제공한다면 비공식 API 를 쓰는 것입니다.
-
-- **팔로우 알림** — Session 이벤트는 CHAT / DONATION / SUBSCRIPTION 3종뿐이고 팔로우가 없습니다.
-  `channels/followers` 폴링도 offset 페이지네이션에 정렬 순서가 문서화되어 있지 않아 신규 감지를
-  보장할 수 없습니다.
-- **시청 시간 기반 포인트** — 시청자 목록 조회 API 가 없습니다. 채팅·후원·구독으로만 적립됩니다.
-- **`$시청자` 변수** — 동시 시청자 수는 전체 라이브 목록을 뒤져야 얻을 수 있어 쿼터 낭비가 큽니다.
-- **채팅 기록 조회 · 공지 읽기/삭제 · 투표 · 클립 · VOD · 레이드** — 해당 엔드포인트가 없습니다.
-- **봇 이모티콘 전송** — 공식 API 로는 불가능합니다.
-
-이제 문서에 있는 **32개 엔드포인트를 전부 사용합니다.** 단 두 가지는 의도적으로 노출하지
-않았습니다: `GET /streams/key`(스트림키는 방송 송출 권한 그 자체라 SDK 에만 둠)와
-`drops/reward-claims`(사업자 인증이 필요).
-
-### 대시보드 스택
-
-React 19 + TypeScript, Vite 로 빌드하고 봇 서버가 `web/dist` 를 정적 서빙합니다.
-
-| 라이브러리      | 쓰는 이유                                                               |
-| --------------- | ----------------------------------------------------------------------- |
-| Tailwind CSS v4 | 디자인 토큰을 `@theme` 한 곳에 두고 라이트/다크를 CSS 변수로 전환       |
-| Radix UI        | Switch · Select · Dialog · Tooltip 의 접근성(role, 키보드, 포커스 트랩) |
-| lucide-react    | SVG 아이콘. 트리셰이킹되어 쓴 아이콘만 번들에 들어갑니다                |
-| TanStack Query  | 서버 상태 캐시·무효화·폴링. 저장하면 관련 화면이 알아서 갱신됩니다      |
-| react-hook-form | 필드 단위 렌더링. 카드가 많아도 입력이 무겁지 않습니다                  |
-| zod (공유)      | **서버와 같은 스키마**로 폼을 검증합니다                                |
-| motion          | 카드 펼침·목록 추가/삭제 전환                                           |
-| sonner          | 저장/오류 토스트                                                        |
-| react-router    | 화면별 주소 · 뒤로가기 · 페이지 단위 코드 분할                          |
-
-가장 중요한 건 **zod 스키마 공유**입니다. `src/store/schema.ts` 하나를 서버 API 와
-브라우저 폼이 함께 쓰기 때문에, 길이 제한이나 허용값을 고치면 양쪽이 동시에 따라옵니다.
-검증 규칙이 서로 어긋날 수 없습니다.
-
-차트 라이브러리는 넣지 않았습니다. 서버가 시계열을 보관하지 않아 그릴 데이터가
-브라우저에 쌓인 30개 남짓의 점뿐이고, 축·범례·툴팁이 필요 없는 그래프 하나에
-수십 KB를 더할 이유가 없어 SVG 폴리라인으로 직접 그렸습니다.
-
-라우팅과 코드 분할은 위 **대시보드 라우팅** 절을 보세요.
-
-몇 가지 설계상 정해둔 규칙:
-
-- **금칙어 검사가 명령어보다 먼저** 실행됩니다. 명령어 인자에 금칙어를 숨겨 보내는 우회를 막습니다.
-- **임시제한은 기본으로 꺼져 있습니다.** 켜기 전까지 "숨기고 임시제한" 규칙도 숨기기까지만 합니다.
-- **자동응답 쿨다운은 채널 공통**입니다. 여러 명이 동시에 같은 키워드를 쳐도 봇이 도배하지 않습니다.
-- 목록 출력은 **최대 30개**까지만 보여주고 나머지는 "외 N명"으로 줄입니다. 100자 제한 때문입니다.
-
----
-
-## 프로젝트 구조
-
-```
-src/
-  env.ts                    zod 로 검증하는 환경 변수 로더
-  client.ts                 ChzzkClient — 모든 API 의 진입점
-  core/
-    http.ts                 공통 응답 봉투 해제, 401 자동 갱신, 429/5xx 재시도
-    errors.ts               ChzzkApiError / TransportError / ValidationError
-    logger.ts               레벨 기반 로거
-  auth/
-    oauth.ts                인가 URL 생성, 코드 교환, 갱신, 폐기
-    tokenStore.ts           파일 기반 토큰 저장 + 만료 전 자동 갱신
-  api/
-    users.ts channels.ts chat.ts lives.ts
-    categories.ts restrictions.ts sessions.ts drops.ts
-    types.ts                문서의 필드/허용값을 그대로 옮긴 타입 정의
-  session/
-    sessionClient.ts        socket.io 세션 클라이언트 (자동 재연결)
-    events.ts               CHAT / DONATION / SUBSCRIPTION / SYSTEM 페이로드
-  bot/
-    commandRouter.ts        접두사·별칭·권한·쿨다운 처리
-    chatSender.ts           전송 직렬화 + 100자 자동 분할
-  store/
-    schema.ts               zod 로 정의한 봇 설정 (명령어/자동응답/금칙어/권한)
-    configStore.ts          JSON 원자적 저장 + 타입 안전한 CRUD
-  features/
-    customCommands.ts       !멤버 같은 목록형·카운터·고정문구 명령
-    autoResponder.ts        키워드 자동응답
-    moderation.ts           금칙어 판정 (API 호출 없이 테스트 가능)
-    permissions.ts          역할·관리자 판정
-    matcher.ts cooldown.ts  매칭 규칙, 쿨다운 추적
-  web/
-    server.ts               대시보드 REST API + 정적 파일 (127.0.0.1 전용)
-  bot/
-    runtime.ts              채팅 이벤트 처리 파이프라인
-  scripts/                  login, doctor, start
-  examples/basic-bot.ts     SDK 만 쓰는 최소 예제
-web/                        React 대시보드 (Vite)
-  src/
-    lib/                    API 훅(TanStack Query), 공유 스키마, 폼 리졸버
-    components/ui/          Button · Field · Switch · Select · Card · Dialog
-    components/             CommandCard · AutoResponseCard · BannedWordCard · Layout
-    pages/                  탭별 화면
-tests/                      vitest
-```
-
----
-
-## 사용 예
-
-```ts
-import { ChzzkClient, CommandRouter, ChatSender } from './src/index.js';
-
-const chzzk = ChzzkClient.fromEnv();
-const me = await chzzk.users.me();
-
-// REST
-await chzzk.chat.send('안녕하세요!');
-await chzzk.chat.setNotice({ message: '오늘 방송 일정 안내' });
-await chzzk.chat.updateSettings({ chatSlowModeSec: 5, chatAvailableGroup: 'FOLLOWER' });
-const lives = await chzzk.lives.list({ size: 10 });
-const games = await chzzk.categories.search('리그 오브 레전드');
-
-// 소켓 (채팅/후원/구독 수신)
-const session = chzzk.createSessionClient({ events: ['CHAT', 'DONATION'] });
-session.on('chat', (e) => console.log(e.profile.nickname, e.content));
-await session.connect();
-```
-
----
-
-## 구현된 API
-
-| 영역     | 메서드                                                                                          | 인증                      |
-| -------- | ----------------------------------------------------------------------------------------------- | ------------------------- |
-| 유저     | `users.me()`                                                                                    | Bearer                    |
-| 채널     | `channels.get()` `getMany()` (20개씩 자동 분할)                                                 | Client                    |
-| 채널     | `channels.streamingRoles()` `followers()` `subscribers()`                                       | Bearer                    |
-| 채팅     | `chat.send()` `setNotice()` `getSettings()` `updateSettings()` `blindMessage()`                 | Bearer                    |
-| 라이브   | `lives.list()` `iterate()`                                                                      | Client                    |
-| 라이브   | `lives.getSetting()` `updateSetting()` `getStreamKey()`                                         | Bearer                    |
-| 카테고리 | `categories.search()`                                                                           | Client                    |
-| 활동제한 | `restrictions.restrict()` `unrestrict()` `list()` `temporaryRestrict()` `temporaryUnrestrict()` | Bearer                    |
-| 세션     | `sessions.createUserSession()` `createClientSession()` `subscribe()` `unsubscribe()` `list*()`  | 양쪽                      |
-| Drops    | `drops.listRewardClaims()` `updateRewardClaims()`                                               | Client (사업자 인증 필요) |
-
----
-
-## 문서에서 확인한 주의사항
-
-구현에 직접 반영된 제약들입니다.
-
-**socket.io-client 는 2.x 로 고정해야 합니다.**
-문서에 "socket.io-client 1.0.0+ 2.0.3 버전까지 지원"이라고 명시되어 있습니다. v3/v4 는
-프로토콜이 달라 핸드셰이크 자체가 실패합니다. `package.json` 에 `2.5.0` 으로 정확히
-핀 고정해 두었으니 올리지 마세요.
-
-**채팅 수신용 REST 엔드포인트는 없습니다.**
-`GET /open/v1/chats/messages` 같은 건 존재하지 않습니다. 반드시 Session API 로
-소켓 URL을 발급받아 접속한 뒤, SYSTEM `connected` 이벤트로 받은 `sessionKey` 를 가지고
-REST 로 구독해야 합니다. 소켓으로 emit 하는 이벤트는 없습니다.
-
-**세션 URL은 일정 시간만 유효합니다.**
-그래서 socket.io 내장 재연결은 끄고(`reconnection: false`), 끊길 때마다 세션 URL을
-새로 발급받아 다시 붙습니다. `ChzzkSessionClient` 가 지수 백오프로 처리합니다.
-
-**`chat.send()` / `setNotice()` 는 채널을 지정할 수 없습니다.**
-대상 채널이 액세스 토큰 소유자로 고정됩니다. 임의의 채널에 대신 글을 쓸 수는 없습니다.
-`blindMessage()` 만 예외적으로 `chatChannelId` 를 받습니다.
-
-**메시지는 100 바이트가 아니라 100 자 제한입니다.**
-`ChatSender` 가 초과분을 공백 경계에서 자동으로 나눠 보냅니다.
-
-**리프레시 토큰은 1회용입니다.**
-갱신 응답에 담겨 오는 새 리프레시 토큰을 반드시 저장해야 합니다. `FileTokenStore` 가
-갱신 즉시 디스크에 반영하고, 동시 요청이 몰려도 갱신은 한 번만 일어나도록 처리합니다.
-
-**설정값은 이산적인 허용 목록이 있습니다.**
-`chatSlowModeSec` 는 `0, 3, 5, 10, 30, 60, 120, 300`, `minFollowerMinute` 는
-`0, 5, 10, 30, 60, 1440, …` 중 하나여야 합니다. 그 외 값은 API 호출 전에
-`ChzzkValidationError` 로 걸러집니다.
-
-**스코프 문자열은 문서화되어 있지 않습니다.**
-공식 문서가 스코프를 `채팅 메시지 쓰기` 같은 한글 표시명으로만 기술하고 있어,
-`scope=` 쿼리에 넣을 문자열 형식이 정의되어 있지 않습니다. 실제 권한은 개발자센터에서
-애플리케이션에 체크한 스코프로 결정되므로 인가 URL에 scope 를 보내지 않습니다.
-
-**연결/구독 상한** — 클라이언트 세션 10개, 유저 세션 3개, 세션당 구독 30개
-(채팅+후원+구독 합산). 끊긴 세션은 90일간 조회됩니다.
-
----
-
-## 개발
+`CHZZK_CLIENT_ID` · `CHZZK_CLIENT_SECRET` 을 채우고, 비밀 값 세 개를 직접 만듭니다.
 
 ```bash
-pnpm typecheck    # tsc --noEmit
-pnpm lint         # eslint (타입 인식 규칙 포함)
-pnpm test         # vitest
-pnpm check        # 위 셋 모두
-pnpm build        # dist/ 로 컴파일
+openssl rand -base64 32   # TOKEN_ENCRYPTION_KEY  (치지직 토큰 암호화)
+openssl rand -hex 32      # SESSION_SECRET        (세션 쿠키 서명)
+openssl rand -hex 32      # INTERNAL_API_TOKEN    (API ↔ Core 공유 비밀)
 ```
 
-`strict` 에 더해 `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
-`verbatimModuleSyntax` 까지 켜 둔 상태입니다.
+> `TOKEN_ENCRYPTION_KEY` 를 잃으면 저장된 토큰을 아무도 복호화할 수 없어 모든 사용자가 재로그인해야 합니다.
 
-### 성능
+내부 관리자 콘솔에 들어가려면 `BOOTSTRAP_SUPER_ADMIN_CHANNEL_ID` 에 자기 치지직 채널 ID 를 넣으세요.
 
-채팅은 초당 수십 건이 들어오고 그 하나하나가 같은 경로를 지납니다. 그래서
-"한 번에 얼마" 가 아니라 **메시지당 얼마** 가 중요합니다. `pnpm bench` 로 잽니다.
-
-측정해 보니 병목이 한 곳에 몰려 있었습니다.
-
-| 항목                | 이전     | 이후     |
-| ------------------- | -------- | -------- |
-| `config.snapshot()` | 1.37ms   | 0.0001ms |
-| 금칙어 50개 검사    | 0.183ms  | 0.039ms  |
-| 변수 치환           | 0.160ms  | 0.026ms  |
-| 정규식 매칭         | 0.0037ms | 0.0006ms |
-
-- **설정 스냅샷** — 채팅 1건마다 2~3번 불리는데 매번 `structuredClone` 으로
-  설정 전체를 깊은 복사했습니다. 설정은 바뀔 때 통째로 새 객체가 되므로,
-  복사 대신 그 객체를 얼려서 그대로 돌려주면 됩니다. 실수로 고치는 코드는
-  `Object.freeze` 가 즉시 드러냅니다.
-- **정규식** — 금칙어·자동응답이 regex 모드면 규칙 하나하나가 메시지마다
-  다시 컴파일됐습니다. 패턴은 설정이 바뀔 때만 달라지므로 캐시했습니다.
-- **변수 치환** — 이름 목록은 코드에 고정인데 치환할 때마다 정규식을 새로
-  만들었습니다. 한 번만 만들어 재사용하고, 변수가 없는 문자열은 즉시 빠집니다.
-
-### 대시보드 라우팅
-
-React Router 를 씁니다. 주소가 화면과 1:1로 대응해서 `/points` 를 북마크하거나
-새로고침해도 그대로 열리고, 브라우저 뒤로가기가 동작합니다.
-
-화면 정의는 `web/src/routes.tsx` 한 곳에 있습니다. 사이드바와 라우터가 같은
-목록을 보므로, 화면을 추가할 때 한쪽만 고쳐 "링크는 있는데 안 열리는" 일이
-생기지 않습니다.
-
-각 페이지는 `lazy()` 로 나눠 받습니다. 예전에는 일반 탭 하나 보려고 신청곡·
-미니게임·제재 관리 코드까지 전부 받아야 했습니다.
-
-|           | 이전         | 이후  |
-| --------- | ------------ | ----- |
-| 초기 로드 | 683KB (전부) | 511KB |
-| 청크 수   | 1개          | 30개  |
-
-서버는 확장자 없는 주소에 `index.html` 을 돌려줍니다(SPA 폴백). 다만 마지막
-조각에 점이 있으면 파일 요청으로 보고 404 를 냅니다 — `.env` 같은 이름이
-확장자 없는 것으로 판정돼 200 이 나가는 걸 막기 위해서입니다.
-
-### CI
-
-`main` 푸시와 모든 PR 에서 GitHub Actions 가 돕니다. 매주 월요일에도 한 번
-돌아서, 코드를 안 건드려도 새로 생기는 취약점을 잡습니다.
-
-| 작업        | 내용                                                                      |
-| ----------- | ------------------------------------------------------------------------- |
-| 검증        | Node 20 · 22 · 24 에서 typecheck → lint → format → test(커버리지) → build |
-| 취약점 점검 | `pnpm audit --audit-level high`                                           |
-| CodeQL      | 보안 + 품질 규칙 정적 분석                                                |
-
-로컬에서 CI 와 같은 것을 돌리려면:
+### 3. 데이터베이스
 
 ```bash
-pnpm check          # typecheck + lint + format:check + test
-pnpm test:coverage  # 커버리지 임계값까지 확인
-pnpm audit          # high 이상 취약점
+pnpm db:migrate        # 스키마 적용
+pnpm db:seed           # 요금제 카탈로그 반영 + 최초 관리자 지정
 ```
 
-커버리지 임계값은 **목표가 아니라 후퇴 방지선**입니다. 현재 42% 를 바닥으로
-고정해 뒀습니다. `api`/`auth`/`session` 은 대부분 네트워크 호출 래퍼라 단위
-테스트가 큰 의미가 없어 실제 계정으로 확인했고, 로직이 들어 있는
-`store`/`features`/`core` 는 70~80% 대입니다.
-
-### 남아 있는 취약점 하나
-
-`pnpm audit` 은 moderate 1건을 계속 보고합니다. **고칠 수 없고, 고치면 안 됩니다.**
-
-```
-parseuri ReDoS  ←  socket.io-client@2.5.0  ←  치지직 세션 API
-```
-
-치지직 문서가 socket.io 프로토콜을 **2.0.3 까지만** 지원한다고 못박고 있어,
-상위 버전으로 올리면 핸드셰이크가 실패해 채팅을 아예 받지 못합니다. 그래서
-Dependabot 에서도 이 패키지를 갱신 대상에서 제외했습니다.
-
-노출 위험은 낮습니다 — 파싱 대상이 사용자 입력이 아니라 **치지직이 발급한
-세션 URL** 입니다. CI 는 high 이상에서만 실패하도록 해 두었습니다.
-
-### pnpm 이 `Cannot find module '../dist/pnpm.cjs'` 로 죽는다면
-
-전역 pnpm 설치가 깨진 경우입니다. `package.json` 에 `packageManager: pnpm@9.15.0` 을
-명시해 두었으니 corepack 으로 실행하면 됩니다.
+### 4. 실행
 
 ```bash
-corepack pnpm install
-corepack pnpm run doctor
+pnpm dev               # 네 앱을 한꺼번에 (turbo)
 ```
 
-전역 설치를 고치려면 `npm i -g pnpm@9.15.0` 으로 다시 설치하세요.
+| 주소                               | 화면                    |
+| ---------------------------------- | ----------------------- |
+| <http://localhost:5173>            | 사용자 웹 · 채널 관리자 |
+| <http://localhost:5174>            | 내부 관리자 콘솔        |
+| <http://localhost:4000/api/health> | API 상태                |
 
----
+개별 실행:
+
+```bash
+pnpm dev:api           # API 서버만
+pnpm dev:core          # 봇 워커만
+pnpm dev:web           # 사용자 웹만
+pnpm dev:backoffice    # 관리자 콘솔만
+```
+
+### 백엔드 없이 화면만 보기
+
+DB 나 치지직 계정 없이 UI 만 확인할 때 씁니다.
+
+```bash
+VITE_MOCK_API=1 pnpm dev:web
+```
+
+`window.fetch` 를 가로채 고정 데이터를 돌려줍니다. 프로덕션 번들에는 포함되지 않습니다.
+
+### 결제 확인
+
+기본값이 모의 모드(`PORTONE_MOCK=true`)라 PG 계정 없이 구독 흐름 전체를 눌러 볼 수 있습니다.
+금액 끝자리가 `9` 이면 실패로 처리되므로 실패 경로도 재현됩니다.
+
+### 검증
+
+```bash
+pnpm typecheck         # 전 워크스페이스 타입 검사
+pnpm lint
+pnpm test
+pnpm check             # 위 전부 + 포맷 확인
+pnpm build
+```
+
+### 개발자 도구
+
+단일 계정으로 치지직 API 를 확인할 때:
+
+```bash
+pnpm --filter @chzzk-bot/core login     # 토큰 발급 → .tokens/chzzk.json
+pnpm --filter @chzzk-bot/core doctor    # 클라이언트 · 유저 인증 점검
+```
+
+## 알아 둘 것
+
+- **봇은 부르기 전에는 말하지 않습니다.** 세션이 연결돼 있어도 스트리머나 매니저가 `!입장` 을 쳐야
+  응답을 시작합니다. `!퇴장` 으로 내보냅니다.
+- **스트리머 계정에서만 되는 기능이 있습니다.** 제재 관리 · 채팅 설정 · 팔로워/구독자 목록은 치지직이
+  스트리머 권한을 요구합니다. 아니면 400 이 오고, 화면이 그 사실을 그대로 안내합니다.
+- **메시지 전송은 분당 30회로 제한됩니다.** 기본 전송 간격 2000ms 가 그 값에 맞춰져 있습니다.
 
 ## 보안
 
-`.env` 와 `.tokens/` 는 `.gitignore` 에 포함되어 있습니다. 클라이언트 시크릿과
-액세스/리프레시 토큰이 평문으로 들어가므로 **절대 커밋하지 마세요.**
-`lives.getStreamKey()` 가 반환하는 스트림키는 방송 송출 권한 그 자체이니 로그에 남기지 마세요.
+토큰과 비밀 값은 `.env` 에만 두고 커밋하지 마세요. 저장된 치지직 리프레시 토큰은 AES-256-GCM 으로
+암호화됩니다. 취약점을 발견하면 공개 이슈 대신 비공개로 알려 주세요.
 
 ## 라이선스
 
 MIT
+
+---
+
+<div align="center">
+<sub>치지직은 NAVER Corp. 의 상표이며, 이 프로젝트는 치지직과 제휴 관계가 없습니다.</sub>
+</div>

@@ -1,0 +1,7 @@
+{
+  "extends": "@chzzk-bot/tsconfig/react.json",
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
+}

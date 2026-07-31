@@ -1,26 +1,8 @@
 {
+  "//": "루트는 에디터/린터가 기댈 최소 설정만 둡니다. 실제 컴파일 단위는 각 워크스페이스의 tsconfig 입니다.",
+  "extends": "@chzzk-bot/tsconfig/node.json",
   "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["ES2023"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": true,
-    "verbatimModuleSyntax": true,
-
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "bench/**/*.ts", "*.config.ts"]
+  "include": ["*.config.ts", "*.config.js", "eslint.config.js", "vitest.config.ts"]
 }

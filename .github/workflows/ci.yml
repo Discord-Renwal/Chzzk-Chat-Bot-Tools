@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # 검증 단계는 DB 에 붙지 않습니다(단위 테스트뿐). 다만 Prisma 클라이언트 생성과
+  # 환경 변수 스키마가 형식을 검사하므로, 형태만 맞는 값을 넣어 둡니다.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+
 jobs:
   verify:
     name: 검증 (Node ${{ matrix.node }})
@@ -37,7 +42,12 @@ jobs:
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
 
-      - name: 타입 검사 (서버 + 웹)
+      # 리포지토리 계층이 Prisma 가 만들어내는 타입을 참조합니다.
+      # 생성하지 않으면 타입 검사부터 실패합니다.
+      - name: Prisma 클라이언트 생성
+        run: pnpm run db:generate
+
+      - name: 타입 검사 (전체 워크스페이스)
         run: pnpm run typecheck
 
       - name: 린트
@@ -49,7 +59,7 @@ jobs:
       - name: 테스트
         run: pnpm run test:coverage
 
-      - name: 빌드 (대시보드 + 서버)
+      - name: 빌드 (앱 4개 + 패키지)
         run: pnpm run build
 
       # 커버리지 리포트는 최신 Node 실행분 하나만 남깁니다.
@@ -60,6 +70,51 @@ jobs:
           name: coverage
           path: coverage/
           retention-days: 14
+
+  migrations:
+    name: 마이그레이션 검증
+    runs-on: ubuntu-latest
+
+    # 스키마와 마이그레이션이 어긋난 채 배포되면 운영에서 처음 발견됩니다.
+    # 빈 DB 에 실제로 적용해 보는 것이 유일하게 확실한 검사입니다.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 마이그레이션 적용
+        run: pnpm run db:deploy
+
+      # 마이그레이션을 적용한 결과가 schema.prisma 와 같은지 확인합니다.
+      # 스키마만 고치고 마이그레이션을 안 만든 PR 이 여기서 걸립니다.
+      - name: 스키마 표류 확인
+        run: pnpm --filter @chzzk-bot/database exec prisma migrate diff
+          --from-schema-datasource prisma/schema.prisma
+          --to-schema-datamodel prisma/schema.prisma
+          --exit-code
+
+      - name: 시드 실행
+        run: pnpm run db:seed
 
   audit:
     name: 취약점 점검

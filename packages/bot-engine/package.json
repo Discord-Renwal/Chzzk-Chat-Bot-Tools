@@ -1,0 +1,30 @@
+{
+  "name": "@chzzk-bot/bot-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "채팅 한 줄을 해석하는 순수 봇 도메인 — 저장소는 포트로만 받습니다",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "bench": "vitest bench --run",
+    "example": "tsx examples/basic-bot.ts"
+  },
+  "dependencies": {
+    "@chzzk-bot/chzzk-sdk": "workspace:*",
+    "@chzzk-bot/contracts": "workspace:*",
+    "@chzzk-bot/logger": "workspace:*",
+    "@chzzk-bot/platform-config": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@chzzk-bot/tsconfig": "workspace:*",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
+  }
+}
