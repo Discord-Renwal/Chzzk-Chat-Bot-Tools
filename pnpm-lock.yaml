@@ -84,8 +84,8 @@ importers:
         specifier: ^5.0.1
         version: 5.1.0
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -185,8 +185,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/platform-config
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -217,7 +217,7 @@ importers:
         version: link:../../packages/ui
       '@hookform/resolvers':
         specifier: ^5.4.0
-        version: 5.5.7(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@3.21.0)(react-hook-form@7.83.0(react@19.2.8))(zod@3.25.76)
+        version: 5.5.7(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@3.21.0)(react-hook-form@7.83.0(react@19.2.8))(zod@4.4.3)
       '@radix-ui/react-tabs':
         specifier: ^1.1.18
         version: 1.1.21(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -249,8 +249,8 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -323,8 +323,8 @@ importers:
         specifier: workspace:*
         version: link:../platform-config
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -351,8 +351,8 @@ importers:
         specifier: workspace:*
         version: link:../platform-config
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -376,8 +376,8 @@ importers:
         specifier: 2.5.0
         version: 2.5.0
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -395,8 +395,8 @@ importers:
   packages/contracts:
     dependencies:
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -423,8 +423,8 @@ importers:
         specifier: ^6.2.1
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -454,8 +454,8 @@ importers:
         specifier: ^16.4.7
         version: 16.6.1
       zod:
-        specifier: ^3.24.1
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@chzzk-bot/tsconfig':
         specifier: workspace:*
@@ -3399,8 +3399,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -3780,7 +3780,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@hookform/resolvers@5.5.7(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@3.21.0)(react-hook-form@7.83.0(react@19.2.8))(zod@3.25.76)':
+  '@hookform/resolvers@5.5.7(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@3.21.0)(react-hook-form@7.83.0(react@19.2.8))(zod@4.4.3)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.83.0(react@19.2.8)
@@ -3788,7 +3788,7 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       ajv: 8.20.0
       effect: 3.21.0
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -4913,8 +4913,8 @@ snapshots:
       '@babel/parser': 7.29.7
       eslint: 9.39.5(jiti@2.7.0)
       hermes-parser: 0.25.1
-      zod: 3.25.76
-      zod-validation-error: 4.0.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-validation-error: 4.0.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -5964,8 +5964,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-validation-error@4.0.2(zod@3.25.76):
+  zod-validation-error@4.0.2(zod@4.4.3):
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
-  zod@3.25.76: {}
+  zod@4.4.3: {}
