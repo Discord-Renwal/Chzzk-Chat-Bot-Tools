@@ -19,7 +19,7 @@
     "@chzzk-bot/contracts": "workspace:*",
     "@chzzk-bot/logger": "workspace:*",
     "@chzzk-bot/platform-config": "workspace:*",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@chzzk-bot/tsconfig": "workspace:*",
