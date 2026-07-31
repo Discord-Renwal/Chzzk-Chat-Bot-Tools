@@ -65,7 +65,7 @@ jobs:
       # 커버리지 리포트는 최신 Node 실행분 하나만 남깁니다.
       - name: 커버리지 업로드
         if: matrix.node == 24
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage/
